@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Join a game — Teacher Trivia</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235c7f9b'/%3E%3Cpath d='M32 18 8 28l24 10 18-7.5V44h4V28L32 18z' fill='%23fdfbf6'/%3E%3Crect x='14' y='40' width='8' height='6' rx='2' fill='%23fdfbf6' opacity='.85'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23f6a821'/%3E%3Cstop offset='1' stop-color='%23ff6b6b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='15' fill='url(%23g)'/%3E%3Cpath d='M32 18 8 28l24 10 18-7.5V44h4V28L32 18z' fill='%23fff'/%3E%3Crect x='14' y='40' width='8' height='6' rx='2' fill='%23fff' opacity='.9'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,450;9..144,550;9..144,650&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -44,7 +44,7 @@
           </div>
           <div class="form-row">
             <label class="field" for="join-code">Room code</label>
-            <input id="join-code" class="input input--code" placeholder="••••••" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+            <input id="join-code" class="input input--code" placeholder="••••••" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" />
           </div>
           <button id="btn-join" class="btn btn--primary btn--block">Join room</button>
         </div>
@@ -70,8 +70,12 @@
           <p class="q-text" id="p-question"></p>
 
           <div class="timer" id="p-timer">
-            <div class="timer__row">
-              <span class="timer__label">Time left</span>
+            <div class="timer__label">Time left</div>
+            <div class="timer__ringwrap">
+              <svg class="timer__ring" viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="timer__ring-bg" cx="50" cy="50" r="44"></circle>
+                <circle class="timer__ring-fg" id="p-ring" cx="50" cy="50" r="44"></circle>
+              </svg>
               <span class="timer__secs" id="p-secs">10</span>
             </div>
             <div class="timer__bar"><div class="timer__fill" id="p-bar" style="width: 100%"></div></div>
@@ -99,7 +103,7 @@
           <p class="q-text" id="r-question"></p>
 
           <div class="row row--between wrap mb">
-            <h2 style="font-size: 20px;">Results</h2>
+            <h2 style="font-size: 22px;">Results 🏆</h2>
           </div>
           <div id="r-leaderboard"></div>
           <p class="vote-note" id="r-your-vote"></p>

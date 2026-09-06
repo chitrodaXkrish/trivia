@@ -27,13 +27,7 @@ const rooms = new Map(); // roomCode -> room
 /* ---------------- helpers ---------------- */
 
 function genCode() {
-  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no ambiguous chars
-  let code;
-  do {
-    code = '';
-    for (let i = 0; i < 6; i++) code += alphabet[Math.floor(Math.random() * alphabet.length)];
-  } while (rooms.has(code));
-  return code;
+  return 'UNI26';
 }
 
 function send(ws, msg) {

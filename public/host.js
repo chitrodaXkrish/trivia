@@ -1,7 +1,7 @@
 /* Teacher Trivia — host client */
 
 (function () {
-  const { TT, showView, renderLeaderboard, esc, showBanner } = window.TT;
+  const { TT, showView, renderLeaderboard, renderCode, burstConfetti, esc, showBanner } = window.TT;
 
   const state = {
     roomCode: null,
@@ -35,6 +35,7 @@
     gQuestion: $('g-question'),
     gSecs: $('g-secs'),
     gBar: $('g-bar'),
+    gRing: $('g-ring'),
     gProgress: $('g-progress'),
     gResultsWrap: $('g-results-wrap'),
     gQuestionWrap: $('g-question-wrap'),
@@ -135,7 +136,7 @@
 
     els.roomChip.classList.remove('hidden');
     els.roomChip.innerHTML = `Room <b>${esc(m.roomCode)}</b>`;
-    els.roomCode.textContent = m.roomCode;
+    renderCode(els.roomCode, m.roomCode);
 
     if (m.phase === 'question') {
       showView('view-game');
@@ -237,7 +238,7 @@
     showView('view-game');
     state.timer = window.startCountdown(
       endsAt,
-      { bar: els.gBar, secs: els.gSecs },
+      { bar: els.gBar, secs: els.gSecs, ring: els.gRing },
       () => {
         els.gProgress.style.display = 'block';
         els.gProgress.textContent = 'Time’s up — tallying results…';
@@ -261,6 +262,7 @@
     els.gResultsWrap.classList.remove('hidden');
 
     renderLeaderboard(els.gLeaderboard, m.leaderboard, null, m.submitted, m.total);
+    burstConfetti();
     els.gVoteChip.textContent = `${m.submitted} of ${m.total} answered`;
     els.gIntended.innerHTML = m.intendedAnswer ? `Intended answer: <b>${esc(m.intendedAnswer)}</b>` : '';
     els.btnEnd.classList.toggle('hidden', !m.last);

@@ -1,7 +1,7 @@
 /* Teacher Trivia — player client */
 
 (function () {
-  const { TT, showView, renderLeaderboard, esc, showBanner } = window.TT;
+  const { TT, showView, renderLeaderboard, burstConfetti, esc, showBanner } = window.TT;
 
   const state = {
     roomCode: null,
@@ -28,6 +28,7 @@
     pQuestion: $('p-question'),
     pSecs: $('p-secs'),
     pBar: $('p-bar'),
+    pRing: $('p-ring'),
     pForm: $('p-form'),
     pAnswer: $('p-answer'),
     btnSubmit: $('btn-submit'),
@@ -180,7 +181,7 @@
 
     state.timer = window.startCountdown(
       m.endsAt,
-      { bar: els.pBar, secs: els.pSecs },
+      { bar: els.pBar, secs: els.pSecs, ring: els.pRing },
       () => {
         els.pForm.classList.add('hidden');
         els.pTimeup.classList.remove('hidden');
@@ -220,6 +221,7 @@
     els.rVoteChip.textContent = `${m.submitted} of ${m.total} answered`;
     els.rLeaderboard.innerHTML = '';
     renderLeaderboard(els.rLeaderboard, m.leaderboard, window.TT.norm(m.yourAnswer), m.submitted, m.total);
+    burstConfetti();
 
     if (m.yourAnswer) {
       const rankWord = m.yourRank === 1 ? 'topped' : `came in #${m.yourRank}`;
@@ -254,8 +256,8 @@
       els.joinName.focus();
       return;
     }
-    if (code.length !== 6) {
-      flashError('The room code has 6 characters — check it with your host.');
+    if (code.length < 4 || code.length > 8) {
+      flashError('The room code has 4-8 characters — check it with your host.');
       els.joinCode.focus();
       return;
     }

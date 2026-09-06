@@ -87,6 +87,8 @@ window.TT = (() => {
    * Render a ranked leaderboard into `el`.
    * leaderboard: [{ answer, count }]  |  youKey: normalized answer of the viewer
    */
+  const MEDALS = ['🥇', '🥈', '🥉'];
+
   function renderLeaderboard(el, leaderboard, youKey, submitted, total) {
     el.innerHTML = '';
     if (!leaderboard || leaderboard.length === 0) {
@@ -99,12 +101,13 @@ window.TT = (() => {
     const max = leaderboard[0].count || 1;
     const list = document.createElement('ol');
     list.className = 'lb';
-    leaderboard.forEach((entry) => {
+    leaderboard.forEach((entry, i) => {
       const li = document.createElement('li');
       li.className = 'lb__row' + (youKey && norm(entry.answer) === youKey ? ' lb__row--you' : '');
+      li.style.setProperty('--i', i);
       const rank = document.createElement('span');
-      rank.className = 'lb__rank';
-      rank.textContent = leaderboard.indexOf(entry) + 1;
+      rank.className = 'lb__rank' + (i < 3 ? ' lb__rank--medal' : '');
+      rank.textContent = i < 3 ? MEDALS[i] : i + 1;
       const name = document.createElement('span');
       name.className = 'lb__name';
       name.textContent = entry.answer;
@@ -120,6 +123,39 @@ window.TT = (() => {
     el.appendChild(list);
   }
 
+  /** Split a room code into playful letter tiles. */
+  function renderCode(el, code) {
+    el.innerHTML = '';
+    for (const ch of String(code || '')) {
+      const tile = document.createElement('span');
+      tile.className = 'code-tile';
+      tile.textContent = ch;
+      el.appendChild(tile);
+    }
+  }
+
+  /** Throw a quick confetti celebration. */
+  function burstConfetti() {
+    const colors = ['#f6a821', '#ff6b6b', '#1faf9e', '#b99be8', '#ffd166', '#55c9ba'];
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < 42; i++) {
+      const p = document.createElement('span');
+      p.className = 'confetti-piece';
+      const size = 6 + Math.random() * 9;
+      p.style.width = `${size}px`;
+      p.style.height = `${Math.random() < 0.5 ? size * 0.45 : size}px`;
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      p.style.left = `${Math.random() * 100}vw`;
+      p.style.animationDuration = `${2.4 + Math.random() * 2.2}s`;
+      p.style.animationDelay = `${Math.random() * 0.5}s`;
+      frag.appendChild(p);
+    }
+    document.body.appendChild(frag);
+    setTimeout(() => {
+      document.querySelectorAll('.confetti-piece').forEach((el) => el.remove());
+    }, 7000);
+  }
+
   function norm(s) {
     return String(s || '')
       .trim()
@@ -133,21 +169,29 @@ window.TT = (() => {
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  return { TT, showView, renderLeaderboard, norm, esc, showBanner, hideBanner };
+  return { TT, showView, renderLeaderboard, renderCode, burstConfetti, norm, esc, showBanner, hideBanner };
 })();
 
 /**
- * A lightweight countdown that drives the timer bar + seconds readout.
+ * A lightweight countdown that drives the timer ring + bar + seconds readout.
+ * els: { bar, secs, ring } — ring is an SVG circle whose dashoffset fills with time.
  * Returns { stop }.
  */
 window.startCountdown = function startCountdown(endsAt, els, onDone) {
-  const { bar, secs } = els;
+  const { bar, secs, ring } = els;
   let raf = null;
+  let ringC = null;
+  if (ring && ring.r) {
+    const r = ring.r.baseVal.value;
+    ringC = 2 * Math.PI * r;
+    ring.style.strokeDasharray = `${ringC}`;
+  }
   const tick = () => {
     const remaining = Math.max(0, endsAt - Date.now());
     const secsLeft = remaining / 1000;
     const pct = Math.max(0, Math.min(100, (remaining / 10000) * 100));
     if (bar) bar.style.width = `${pct}%`;
+    if (ringC) ring.style.strokeDashoffset = `${ringC * (1 - pct / 100)}`;
     if (secs) secs.textContent = Math.ceil(secsLeft);
     if (secs && secsLeft <= 3.05) {
       const timer = secs.closest('.timer');

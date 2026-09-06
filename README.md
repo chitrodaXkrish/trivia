@@ -51,4 +51,6 @@ Rebuild it after theme changes with `node scripts/build-demo.js`.
 - Node.js + `ws` for the real-time game server (in-memory rooms, one process
   comfortably handles 100+ concurrent players)
 - Plain HTML/CSS/JS frontend — no build step
-- Soft, minimal, engineering-paper-inspired theme (Fraunces + Inter)
+- Fun, festive quiz-show theme: warm cream + confetti dots, marigold/coral/teal
+  accents, chunky buttons, a circular countdown ring, medal leaderboard, and
+  confetti bursts on results (Fredoka + Nunito)
