@@ -1,0 +1,17 @@
+{
+  "name": "teacher-trivia",
+  "version": "1.0.0",
+  "description": "A Teachers' Day trivia game: host a private room, preset questions, 10-second guess timer, and a live leaderboard.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "simulate": "node scripts/simulate.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  }
+}

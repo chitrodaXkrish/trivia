@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Teacher Trivia — offline demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,450;9..144,550;9..144,650&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/*__CSS__*/
+
+/* demo-only */
+.demo-banner {
+  max-width: 860px; margin: 18px auto 0; padding: 12px 18px;
+  background: var(--gold-soft); border: 1px solid #e7d9b6; color: #7d6128;
+  border-radius: 14px; font-size: 14px; text-align: center;
+}
+.demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; max-width: 860px; margin: 0 auto; padding: 22px 20px 40px; }
+.demo-panel h2 { font-size: 18px; display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.demo-panel h2 .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot--host { background: var(--accent); } .dot--player { background: var(--gold); }
+.sim-ctl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; max-width: 860px; margin: 0 auto 60px; padding: 0 20px; justify-content: center; }
+.sim-ctl button { padding: 9px 12px; font-size: 13px; }
+.sim-status { font-size: 13px; color: var(--muted); }
+@media (max-width: 860px) { .demo-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="demo-banner">🎛️ <b>Offline demo</b> — the whole game runs in this one tab, no server needed.
+  The real website works across devices: run <b>npm start</b> and open it on your phone.</div>
+
+<div class="demo-grid">
+  <section class="demo-panel">
+    <h2><span class="dot dot--host"></span>Host console</h2>
+
+    <div id="h-view-create" class="view view--active">
+      <div class="card card--pad">
+        <p class="muted mb" style="margin-top: 0;">Create a private room, then queue your preset questions.</p>
+        <div id="h-create-error"></div>
+        <div class="form-row">
+          <label class="field" for="h-name">Your name</label>
+          <input id="h-name" class="input" placeholder="e.g. Ms. Sharma" maxlength="40" autocomplete="off" />
+        </div>
+        <button id="h-btn-create" class="btn btn--primary btn--block">Create room</button>
+      </div>
+    </div>
+
+    <div id="h-view-setup" class="view">
+      <div class="card card--pad">
+        <p class="q-number" style="margin: 0 0 4px;">Your private room</p>
+        <div class="code-big" id="h-code"></div>
+        <p class="center hint" style="margin: 8px 0 0;">Teachers join with this code in the panel on the right.</p>
+      </div>
+      <div class="card card--pad mt">
+        <h2 style="font-size: 19px; margin-bottom: 4px;">Preset questions</h2>
+        <p class="hint" style="margin-top: 0;">Queue the questions before the game starts.</p>
+        <div id="h-qlist" class="stack" style="margin-top: 14px;"></div>
+        <button id="h-btn-addq" class="btn btn--ghost btn--block mt">+ Add question</button>
+        <div id="h-setup-error"></div>
+        <button id="h-btn-start" class="btn btn--gold btn--block mt" disabled>Start the game</button>
+      </div>
+    </div>
+
+    <div id="h-view-game" class="view">
+      <div class="card card--pad">
+        <div class="q-meta">
+          <span class="q-number" id="h-qnum"></span>
+          <span class="chip" id="h-roster"></span>
+        </div>
+        <p class="q-text" id="h-question"></p>
+        <div class="timer">
+          <div class="timer__row"><span class="timer__label">Time left</span><span class="timer__secs" id="h-secs">10</span></div>
+          <div class="timer__bar"><div class="timer__fill" id="h-bar" style="width: 100%"></div></div>
+        </div>
+        <div id="h-progress" class="alert alert--info" style="display: none;"></div>
+        <div id="h-results" class="hidden">
+          <h2 style="font-size: 19px; margin: 6px 0 0;">Results</h2>
+          <div id="h-lb"></div>
+          <p class="vote-note" id="h-intended"></p>
+          <button id="h-btn-next" class="btn btn--primary btn--block mt-lg">Next question →</button>
+          <button id="h-btn-end" class="btn btn--ghost btn--block hidden mt">End the game 🎉</button>
+        </div>
+        <div id="h-question-wrap">
+          <button id="h-btn-reveal" class="btn btn--ghost btn--block">Reveal results early</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="h-view-ended" class="view">
+      <div class="card card--pad center">
+        <div style="font-size: 42px;">🎉</div>
+        <h2 style="margin: 8px 0;">That's a wrap!</h2>
+        <p class="muted">Happy Teachers' Day!</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="demo-panel">
+    <h2><span class="dot dot--player"></span>Player — this tab</h2>
+
+    <div id="p-view-join" class="view view--active">
+      <div class="card card--pad">
+        <p class="muted mb" style="margin-top: 0;">Join with the room code from the host console.</p>
+        <div id="p-join-error"></div>
+        <div class="form-row">
+          <label class="field" for="p-name">Your name</label>
+          <input id="p-name" class="input" placeholder="e.g. Ms. Iyer" maxlength="40" autocomplete="off" />
+        </div>
+        <div class="form-row">
+          <label class="field" for="p-code">Room code</label>
+          <input id="p-code" class="input input--code" placeholder="••••••" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+        </div>
+        <button id="p-btn-join" class="btn btn--primary btn--block">Join room</button>
+      </div>
+    </div>
+
+    <div id="p-view-lobby" class="view">
+      <div class="card card--pad center">
+        <div class="spinner" style="margin-bottom: 18px;"></div>
+        <h2 style="font-size: 20px; margin-bottom: 6px;">You're in!</h2>
+        <p class="muted" style="margin-top: 0;" id="p-lobby-note"></p>
+        <div class="chip chip--gold" id="p-lobby-chip"></div>
+      </div>
+    </div>
+
+    <div id="p-view-question" class="view">
+      <div class="card card--pad">
+        <div class="q-meta">
+          <span class="q-number" id="p-qnum"></span>
+          <span class="chip" id="p-answered" style="display: none;"></span>
+        </div>
+        <p class="q-text" id="p-question"></p>
+        <div class="timer">
+          <div class="timer__row"><span class="timer__label">Time left</span><span class="timer__secs" id="p-secs">10</span></div>
+          <div class="timer__bar"><div class="timer__fill" id="p-bar" style="width: 100%"></div></div>
+        </div>
+        <div id="p-form">
+          <div class="form-row">
+            <label class="field" for="p-answer">Your guess — a teacher's name</label>
+            <input id="p-answer" class="input" placeholder="Type a name…" maxlength="60" autocomplete="off" />
+          </div>
+          <button id="p-btn-submit" class="btn btn--primary btn--block">Submit answer</button>
+        </div>
+        <p id="p-note" class="hint center hidden" style="margin-top: 12px;"></p>
+      </div>
+    </div>
+
+    <div id="p-view-results" class="view">
+      <div class="card card--pad">
+        <div class="q-meta">
+          <span class="q-number" id="p-rqnum"></span>
+          <span class="chip" id="p-rchip"></span>
+        </div>
+        <p class="q-text" id="p-rquestion"></p>
+        <h2 style="font-size: 19px; margin: 0 0 4px;">Results</h2>
+        <div id="p-rlb"></div>
+        <p class="vote-note" id="p-rvote"></p>
+        <p class="hint center" style="margin-top: 16px;">Waiting for the host to move to the next question…</p>
+      </div>
+    </div>
+
+    <div id="p-view-ended" class="view">
+      <div class="card card--pad center">
+        <div style="font-size: 42px;">🎉</div>
+        <h2 style="margin: 8px 0;">Thanks for playing!</h2>
+        <p class="muted">Happy Teachers' Day!</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="sim-ctl">
+  <button id="btn-sim" class="btn btn--soft">🤖 Add 20 simulated teachers</button>
+  <button id="btn-sim-clear" class="btn btn--ghost hidden">Clear simulated teachers</button>
+  <span class="sim-status" id="sim-status"></span>
+</div>
+
+<script>
+/* ================= fake in-page server (mirrors server.js protocol) ================= */
+const QUESTION_MS = 10000;
+
+const server = {
+  room: null,
+  host: null,
+  players: new Map(), // id -> { name, send }
+  _pid: 0,
+  timer: null,
+
+  create(name) {
+    this.room = { code: 'DEMO42', hostName: name, questions: [], phase: 'lobby', questionIndex: -1, answers: new Map(), endsAt: null };
+    this.host = { send: (m) => hostOnMessage(m) };
+    this._broadcast({ type: 'roster', playerCount: 0 });
+    this.host.send({ type: 'room:state', roomCode: 'DEMO42', hostName: name, phase: 'lobby', questions: [], questionIndex: -1, totalQuestions: 0, playerCount: 0, submitted: 0 });
+  },
+
+  join(code, name) {
+    if (!this.room || code.toUpperCase() !== this.room.code) return { error: 'Room not found. Check the code with the host.' };
+    if (this.room.phase === 'ended') return { error: 'This game has already ended.' };
+    const id = 'p' + ++this._pid;
+    const player = { id, name, send: (m) => playerOnMessage(id, m) };
+    this.players.set(id, player);
+    this._broadcast({ type: 'roster', playerCount: this.players.size });
+    player.send(this._snapshot());
+    return { ok: true };
+  },
+
+  setQuestions(qs) {
+    if (this.room.phase !== 'lobby') return { error: 'Questions can only be set before the game starts.' };
+    this.room.questions = qs.map(q => ({ text: String(q.text || '').trim(), answer: String(q.answer || '').trim() || null })).filter(q => q.text);
+    this.host.send({ type: 'questions:set', questions: this.room.questions });
+    return { ok: true };
+  },
+
+  start() {
+    if (this.room.phase !== 'lobby') return;
+    if (!this.room.questions.length) return;
+    this._startQuestion(0);
+  },
+
+  reveal() { if (this.room.phase === 'question') this._endQuestion(); },
+
+  next() {
+    if (this.room.phase !== 'results') return;
+    const n = this.room.questionIndex + 1;
+    if (n >= this.room.questions.length) return this._endGame();
+    this._startQuestion(n);
+  },
+
+  answer(id, answer) {
+    if (this.room.phase !== 'question') return;
+    if (!answer) return;
+    if (Date.now() >= this.room.endsAt) return;
+    this.room.answers.set(id, { answer, at: Date.now() });
+    this.players.get(id).send({ type: 'answer:ack', answer });
+    this._broadcast({ type: 'submitted', submitted: this.room.answers.size, total: this.players.size });
+  },
+
+  _snapshot() {
+    const r = this.room;
+    const base = { type: 'room:state', roomCode: r.code, phase: r.phase, questionIndex: r.questionIndex, totalQuestions: r.questions.length, endsAt: r.endsAt, playerCount: this.players.size, submitted: r.answers.size };
+    if (r.phase === 'question' && r.questionIndex >= 0) base.question = r.questions[r.questionIndex].text;
+    if (r.phase === 'results' && r.results) { base.leaderboard = r.results.leaderboard; base.submitted = r.results.submitted; base.intendedAnswer = r.questions[r.questionIndex].answer || null; }
+    return base;
+  },
+
+  _broadcast(m) { this.host.send(m); for (const p of this.players.values()) p.send(m); },
+
+  _startQuestion(i) {
+    const r = this.room;
+    r.phase = 'question'; r.questionIndex = i; r.answers = new Map(); r.results = null;
+    r.endsAt = Date.now() + QUESTION_MS;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this._endQuestion(), QUESTION_MS);
+    this._broadcast({ type: 'game:phase', phase: 'question', questionIndex: i, totalQuestions: r.questions.length, question: r.questions[i].text, endsAt: r.endsAt });
+    simTeachers.startAnswering();
+  },
+
+  _endQuestion() {
+    const r = this.room;
+    if (r.phase !== 'question') return;
+    clearTimeout(this.timer);
+    const lb = this._tally(r.answers);
+    r.results = { leaderboard: lb, submitted: r.answers.size };
+    r.phase = 'results'; r.endsAt = null;
+    const base = { type: 'game:results', questionIndex: r.questionIndex, totalQuestions: r.questions.length, question: r.questions[r.questionIndex].text, intendedAnswer: r.questions[r.questionIndex].answer || null, leaderboard: lb, submitted: r.results.submitted, total: this.players.size, last: r.questionIndex === r.questions.length - 1 };
+    this.host.send(base);
+    for (const [id, p] of this.players) {
+      const mine = r.answers.get(id);
+      const rank = mine ? lb.findIndex(e => this._norm(e.answer) === this._norm(mine.answer)) + 1 : null;
+      p.send(Object.assign({}, base, {
+        yourAnswer: mine ? mine.answer.trim() : null,
+        yourRank: rank || null,
+        yourCount: mine ? (lb.find(e => this._norm(e.answer) === this._norm(mine.answer)) || {}).count : null,
+      }));
+    }
+  },
+
+  _endGame() {
+    clearTimeout(this.timer);
+    this.room.phase = 'ended';
+    this._broadcast({ type: 'game:ended' });
+  },
+
+  _tally(answers) {
+    const groups = new Map();
+    for (const { answer, at } of answers.values()) {
+      const key = this._norm(answer);
+      if (!key) continue;
+      const g = groups.get(key);
+      if (g) { g.count++; if (at < g.firstAt) { g.firstAt = at; g.answer = answer.trim(); } }
+      else groups.set(key, { answer: answer.trim(), count: 1, firstAt: at });
+    }
+    return [...groups.values()].sort((a, b) => b.count - a.count || a.firstAt - b.firstAt).map(g => ({ answer: g.answer, count: g.count }));
+  },
+
+  _norm(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/\./g, '').replace(/[^a-z0-9\u00C0-\u024F ]/g, ''); },
+};
+
+/* ================= simulated teachers ================= */
+const simTeachers = {
+  bots: new Map(),
+  pending: new Map(),
+  add(n) {
+    const POOL = ['Dr. Rao', 'Prof. Mehta', 'Mrs. Fernandes', 'Dr. Kulkarni', 'Sir Thomas', "Ms. D'Souza", 'Dr. Patil', 'Prof. Banerjee', 'Mrs. Nair', 'Dr. Joshi', 'Prof. Iyer', 'Ms. Choudhury', 'Dr. Saxena', 'Prof. Menon', 'Mrs. Pillai', 'Dr. Verma', 'Prof. Ganguly', 'Ms. Bhat', 'Dr. Naik', 'Prof. Kaur'];
+    for (let i = 0; i < n; i++) {
+      const id = 'bot' + ++server._pid;
+      const name = POOL[i % POOL.length];
+      const joined = server.join(server.room.code, name);
+      if (joined.ok) this.bots.set(id, name);
+    }
+    if (this.bots.size) simStatus('🤖 ' + this.bots.size + ' simulated teachers joined');
+  },
+  clear() {
+    for (const id of this.bots.keys()) {
+      server.players.delete(id);
+      clearTimeout(this.pending.get(id));
+      this.pending.delete(id);
+    }
+    this.bots.clear();
+    server._broadcast({ type: 'roster', playerCount: server.players.size });
+    simStatus('');
+  },
+  startAnswering() {
+    if (!this.bots.size || server.room.phase !== 'question') return;
+    for (const id of this.bots.keys()) {
+      const delay = 400 + Math.random() * 7500;
+      this.pending.set(id, setTimeout(() => {
+        if (server.room.phase !== 'question') return;
+        const pick = Math.random() < 0.4 ? 'Dr. Sharma' : (this.bots.get(id) || 'Someone');
+        server.answer(id, Math.random() < 0.12 ? '' : pick);
+        this.pending.delete(id);
+      }, delay));
+    }
+  },
+};
+
+/* ================= tiny view + leaderboard helpers ================= */
+function showView(prefix, id) {
+  document.querySelectorAll('[id^="' + prefix + '-view"]').forEach(v => v.classList.toggle('view--active', v.id === prefix + '-view-' + id));
+}
+function escHtml(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function renderLB(el, lb, youKey, submitted, total) {
+  el.innerHTML = '';
+  if (!lb || !lb.length) { el.innerHTML = '<div class="lb-empty">No answers came in for this one — everyone sat this out!</div>'; return; }
+  const max = lb[0].count || 1;
+  const norm = server._norm.bind(server);
+  const ol = document.createElement('ol'); ol.className = 'lb';
+  lb.forEach((e, i) => {
+    const li = document.createElement('li');
+    li.className = 'lb__row' + (youKey && norm(e.answer) === youKey ? ' lb__row--you' : '');
+    li.innerHTML = '<span class="lb__rank">' + (i + 1) + '</span><span class="lb__name"></span><span class="lb__votes"><b>' + e.count + '</b> ' + (e.count === 1 ? 'vote' : 'votes') + '</span><span class="lb__bar" style="width:' + Math.max(8, Math.round(e.count / max * 100)) + '%"></span>';
+    li.querySelector('.lb__name').textContent = e.answer;
+    ol.appendChild(li);
+  });
+  el.appendChild(ol);
+}
+function flash(el, msg) { el.innerHTML = '<div class="alert alert--error">' + escHtml(msg) + '</div>'; setTimeout(() => { if (el.innerHTML.includes(msg)) el.innerHTML = ''; }, 5000); }
+const $ = (id) => document.getElementById(id);
+const countdowns = new Map(); // one interval per timer element
+function startCountdown(endsAt, bar, secs, onDone) {
+  clearInterval(countdowns.get(secs));
+  const id = setInterval(() => {
+    const rem = Math.max(0, endsAt - Date.now());
+    bar.style.width = (rem / QUESTION_MS * 100) + '%';
+    secs.textContent = Math.ceil(rem / 1000);
+    if (rem <= 0) { clearInterval(id); countdowns.delete(secs); onDone && onDone(); }
+  }, 100);
+  countdowns.set(secs, id);
+}
+function stopCountdown(secs) { clearInterval(countdowns.get(secs)); countdowns.delete(secs); }
+
+/* ================= host UI ================= */
+let hostState = { questions: [], phase: 'lobby', questionIndex: -1, total: 0, playerCount: 0, submitted: 0 };
+
+function hostOnMessage(m) {
+  switch (m.type) {
+    case 'room:state':
+      hostState.questions = m.questions || [];
+      hostState.phase = m.phase;
+      if (m.phase === 'lobby') { renderHostSetup(); showView('h', 'setup'); }
+      break;
+    case 'questions:set':
+      hostState.questions = m.questions;
+      renderHostSetup();
+      break;
+    case 'game:phase':
+      if (m.phase === 'question') {
+        hostState.phase = 'question'; hostState.questionIndex = m.questionIndex; hostState.total = m.totalQuestions; hostState.submitted = 0;
+        $('h-qnum').textContent = 'Question ' + (m.questionIndex + 1) + ' of ' + m.totalQuestions;
+        $('h-question').textContent = m.question;
+        $('h-results').classList.add('hidden');
+        $('h-question-wrap').classList.remove('hidden');
+        $('h-progress').style.display = 'none';
+        showView('h', 'game');
+        startCountdown(m.endsAt, $('h-bar'), $('h-secs'), () => { $('h-progress').style.display = 'block'; $('h-progress').textContent = 'Time’s up — tallying results…'; $('h-btn-reveal').disabled = true; });
+        $('h-btn-reveal').disabled = false;
+        hostProgress();
+      }
+      break;
+    case 'game:results': {
+      stopCountdown($('h-secs'));
+      hostState.phase = 'results';
+      $('h-qnum').textContent = 'Question ' + (m.questionIndex + 1) + ' of ' + m.totalQuestions;
+      $('h-question').textContent = m.question;
+      $('h-question-wrap').classList.add('hidden');
+      $('h-progress').style.display = 'none';
+      $('h-results').classList.remove('hidden');
+      renderLB($('h-lb'), m.leaderboard, null);
+      $('h-intended').innerHTML = m.intendedAnswer ? 'Intended answer: <b>' + escHtml(m.intendedAnswer) + '</b>' : '';
+      $('h-btn-end').classList.toggle('hidden', !m.last);
+      $('h-btn-next').classList.toggle('hidden', !!m.last);
+      showView('h', 'game');
+      break;
+    }
+    case 'game:ended':
+      showView('h', 'ended');
+      break;
+    case 'roster':
+      hostState.playerCount = m.playerCount;
+      $('h-roster').textContent = '👥 ' + m.playerCount + ' ' + (m.playerCount === 1 ? 'player' : 'players');
+      break;
+    case 'submitted':
+      hostState.submitted = m.submitted;
+      hostProgress();
+      break;
+  }
+}
+
+function hostProgress() {
+  $('h-progress').style.display = 'block';
+  $('h-progress').textContent = hostState.submitted + ' of ' + hostState.playerCount + ' teachers answered so far';
+}
+
+function renderHostSetup() {
+  $('h-code').textContent = server.room.code;
+  const list = $('h-qlist');
+  list.innerHTML = '';
+  hostState.questions.forEach((q, i) => {
+    const row = document.createElement('div');
+    row.className = 'q-row';
+    row.innerHTML = '<div class="row row--between"><span class="q-row__num">Question ' + (i + 1) + '</span><button class="btn btn--sm btn--danger-ghost" type="button">Remove</button></div><div class="q-row__inputs"><input class="input q-text-input" maxlength="200" /><input class="input" placeholder="Intended answer (optional)" maxlength="60" /></div>';
+    const inputs = row.querySelectorAll('input');
+    inputs[0].value = q.text; inputs[1].value = q.answer || '';
+    row.querySelector('button').onclick = () => { hostState.questions.splice(i, 1); renderHostSetup(); };
+    inputs[0].oninput = () => { hostState.questions[i].text = inputs[0].value; enableStart(); };
+    inputs[1].oninput = () => { hostState.questions[i].answer = inputs[1].value; };
+    list.appendChild(row);
+  });
+  enableStart();
+}
+function enableStart() { $('h-btn-start').disabled = !hostState.questions.some(q => q.text.trim()); }
+
+$('h-btn-create').onclick = () => {
+  const name = $('h-name').value.trim();
+  if (!name) return flash($('h-create-error'), 'Please enter your name.');
+  server.create(name);
+  renderHostSetup();
+  showView('h', 'setup');
+};
+$('h-btn-addq').onclick = () => { hostState.questions.push({ text: '', answer: '' }); renderHostSetup(); };
+$('h-btn-start').onclick = () => {
+  const ok = server.setQuestions(hostState.questions);
+  if (ok.error) return flash($('h-setup-error'), ok.error);
+  setTimeout(() => server.start(), 60);
+};
+$('h-btn-reveal').onclick = () => server.reveal();
+$('h-btn-next').onclick = () => server.next();
+$('h-btn-end').onclick = () => server.next();
+
+/* ================= player UI ================= */
+let humanId = null; // the real person's player id; simulated teachers must not drive the shared panel
+
+function playerOnMessage(id, m) {
+  const isHuman = !!humanId && id === humanId;
+  switch (m.type) {
+    case 'room:state':
+      if (!isHuman) break;
+      $('p-lobby-note').textContent = 'Room ' + m.roomCode + ' · waiting for the host to start…';
+      $('p-lobby-chip').textContent = '👥 ' + m.playerCount + ' in the room';
+      if (m.phase === 'question') playerShowQuestion(m);
+      else if (m.phase === 'results') playerShowResults(m);
+      else if (m.phase === 'ended') showView('p', 'ended');
+      else showView('p', 'lobby');
+      break;
+    case 'game:phase':
+      if (!isHuman) break;
+      if (m.phase === 'question') playerShowQuestion(m);
+      break;
+    case 'game:results':
+      if (!isHuman) break;
+      playerShowResults(m);
+      break;
+    case 'game:ended':
+      if (!isHuman) break;
+      showView('p', 'ended');
+      break;
+    case 'answer:ack':
+      if (!isHuman) break;
+      $('p-note').innerHTML = '✓ Submitted: <b>' + escHtml(m.answer) + '</b> — you can change it until time’s up.';
+      $('p-note').classList.remove('hidden');
+      break;
+    case 'submitted':
+      $('p-answered').style.display = 'inline-flex';
+      $('p-answered').textContent = m.submitted + ' answered';
+      break;
+    case 'roster':
+      if ($('p-lobby-chip').textContent) $('p-lobby-chip').textContent = '👥 ' + m.playerCount + ' in the room';
+      break;
+  }
+}
+
+function playerShowQuestion(m) {
+  $('p-qnum').textContent = 'Question ' + (m.questionIndex + 1) + ' of ' + m.totalQuestions;
+  $('p-question').textContent = m.question;
+  $('p-form').classList.remove('hidden');
+  $('p-answer').value = '';
+  $('p-answer').disabled = false;
+  $('p-btn-submit').disabled = false;
+  $('p-note').classList.add('hidden');
+  $('p-answered').style.display = 'none';
+  showView('p', 'question');
+  startCountdown(m.endsAt, $('p-bar'), $('p-secs'), () => { $('p-form').classList.add('hidden'); $('p-note').textContent = 'Time’s up — tallying results…'; $('p-note').classList.remove('hidden'); });
+}
+
+function playerShowResults(m) {
+  stopCountdown($('p-secs'));
+  $('p-rqnum').textContent = 'Question ' + (m.questionIndex + 1) + ' of ' + m.totalQuestions;
+  $('p-rquestion').textContent = m.question;
+  $('p-rchip').textContent = m.submitted + ' of ' + m.total + ' answered';
+  renderLB($('p-rlb'), m.leaderboard, server._norm(m.yourAnswer));
+  if (m.yourAnswer) {
+    const rankWord = m.yourRank === 1 ? 'topped' : 'came in #' + m.yourRank;
+    $('p-rvote').innerHTML = 'You guessed <b>' + escHtml(m.yourAnswer) + '</b> — it ' + rankWord + ' with <b>' + m.yourCount + '</b> ' + (m.yourCount === 1 ? 'vote' : 'votes') + '.';
+  } else {
+    $('p-rvote').textContent = 'You didn’t submit an answer this round.';
+  }
+  if (m.intendedAnswer) $('p-rvote').innerHTML += '<br/><span class="hint">The question was about <b>' + escHtml(m.intendedAnswer) + '</b>.</span>';
+  showView('p', 'results');
+}
+
+$('p-btn-join').onclick = () => {
+  const name = $('p-name').value.trim();
+  const code = $('p-code').value.trim().toUpperCase();
+  if (!name) return flash($('p-join-error'), 'Please enter your name.');
+  if (code.length !== 6) return flash($('p-join-error'), 'The room code has 6 characters — check it with your host.');
+  const res = server.join(code, name);
+  if (res.error) return flash($('p-join-error'), res.error);
+  const me = [...server.players.values()].find(p => p.name === name);
+  humanId = me ? me.id : null;
+  $('p-lobby-note').textContent = 'Room ' + code + ' · waiting for the host to start…';
+  showView('p', 'lobby');
+};
+$('p-btn-submit').onclick = () => {
+  const ans = $('p-answer').value.trim();
+  if (!ans) return $('p-answer').focus();
+  const player = [...server.players.values()].find(p => p.name === $('p-name').value.trim());
+  if (player) server.answer(player.id, ans);
+};
+$('p-answer').addEventListener('keydown', e => { if (e.key === 'Enter') $('p-btn-submit').click(); });
+$('p-code').addEventListener('input', () => { $('p-code').value = $('p-code').value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+
+/* ================= sim controls ================= */
+function simStatus(t) {
+  $('sim-status').textContent = t;
+  $('btn-sim-clear').classList.toggle('hidden', !server.players.size);
+}
+$('btn-sim').onclick = () => { if (!server.room) return; simTeachers.add(20); };
+$('btn-sim-clear').onclick = () => { simTeachers.clear(); };
+</script>
+</body>
+</html>

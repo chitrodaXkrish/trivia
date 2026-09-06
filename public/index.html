@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Trivia — Teachers' Day</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235c7f9b'/%3E%3Cpath d='M32 18 8 28l24 10 18-7.5V44h4V28L32 18z' fill='%23fdfbf6'/%3E%3Crect x='14' y='40' width='8' height='6' rx='2' fill='%23fdfbf6' opacity='.85'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,450;9..144,550;9..144,650&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand__mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
+            <path d="M32 14 4 26l28 12 24-10v18h6V26L32 14z" fill="currentColor"/>
+            <rect x="10" y="40" width="9" height="7" rx="2.5" fill="currentColor" opacity=".85"/>
+            <path d="M44 34v10c0 2.2-5.4 4-12 4s-12-1.8-12-4V34" stroke="currentColor" stroke-width="4" opacity=".55" fill="none"/>
+          </svg>
+        </span>
+        <span>
+          <span class="brand__name">Teacher Trivia</span>
+          <div class="brand__tag">Teachers' Day special</div>
+        </span>
+      </a>
+    </header>
+
+    <main class="hero">
+      <span class="hero__badge">🎓 Happy Teachers' Day</span>
+      <h1>Who's the answer?</h1>
+      <p class="lede">
+        A friendly guessing game for the whole staff room. Every question hides a
+        teacher — everyone has 10 seconds to guess the name.
+      </p>
+
+      <div class="cta-row">
+        <a class="cta" href="host.html">
+          <span class="cta__icon cta__icon--host" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </span>
+          <h3>Host a game</h3>
+          <p>Create a private room, set your questions, and run the show.</p>
+        </a>
+        <a class="cta" href="play.html">
+          <span class="cta__icon cta__icon--join" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+              <path d="M5 20c0-3.3 3.1-6 7-6 1.2 0 2.4.3 3.4.8"/>
+            </svg>
+          </span>
+          <h3>Join a game</h3>
+          <p>Enter the room code from your host and start guessing.</p>
+        </a>
+      </div>
+
+      <section class="how">
+        <h2>How it works</h2>
+        <div class="step">
+          <span class="step__num">1</span>
+          <p>The host creates a private room and adds a queue of preset questions.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">2</span>
+          <p>Everyone joins with their name. When the host starts, question 1 appears with a 10-second timer.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">3</span>
+          <p>Type the name you think is the answer. When time's up, the most-guessed names top the leaderboard.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">4</span>
+          <p>The host reveals the results, moves to the next question, and the cycle repeats.</p>
+        </div>
+      </section>
+
+      <p class="foot-note">Works great on phones — designed for a room full of teachers.</p>
+    </main>
+  </div>
+</body>
+</html>
