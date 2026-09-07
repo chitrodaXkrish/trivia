@@ -81,6 +81,8 @@ async function main() {
   for (let qi = 0; qi < Q_COUNT; qi++) {
     const qStart = Date.now();
     const resultsP = once(host, 'game:results');
+    host.send(JSON.stringify({ type: 'host:startTimer', roomCode: code }));
+    await once(host, 'game:timer-start');
     // Wait for each player to see the question, then answer.
     await Promise.all(
       players.map(async (ws) => {

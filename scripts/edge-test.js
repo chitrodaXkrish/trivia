@@ -65,6 +65,9 @@ async function main() {
   host.send(JSON.stringify({ type: 'host:start', roomCode: code }));
   const gp = await once(host, 'game:phase');
   check('game starts with fixed questions', gp.type === 'game:phase' && gp.phase === 'question');
+  host.send(JSON.stringify({ type: 'host:startTimer', roomCode: code }));
+  const timerStarted = await once(host, 'game:timer-start');
+  check('host starts timer', timerStarted.endsAt > Date.now());
   host.send(JSON.stringify({ type: 'host:setQuestions', roomCode: code, questions: [{ text: 'late?' }] }));
   const e3 = await once(host, 'error');
   check('cannot set questions after start', !!e3.message);
@@ -118,11 +121,15 @@ async function main() {
   host2.send(JSON.stringify({ type: 'host:next', roomCode: code }));
   const q2 = await once(host2, 'game:phase');
   check('next question starts after results', q2.phase === 'question' && q2.questionIndex === 1);
+  host2.send(JSON.stringify({ type: 'host:startTimer', roomCode: code }));
+  await once(host2, 'game:timer-start');
   host2.send(JSON.stringify({ type: 'host:reveal', roomCode: code }));
   await once(host2, 'game:results');
   for (let questionIndex = 2; questionIndex < 10; questionIndex++) {
     host2.send(JSON.stringify({ type: 'host:next', roomCode: code }));
     await once(host2, 'game:phase');
+    host2.send(JSON.stringify({ type: 'host:startTimer', roomCode: code }));
+    await once(host2, 'game:timer-start');
     host2.send(JSON.stringify({ type: 'host:reveal', roomCode: code }));
     await once(host2, 'game:results');
   }

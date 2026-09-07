@@ -43,6 +43,7 @@
     gVoteChip: $('g-vote-chip'),
     gIntended: $('g-intended'),
     btnReveal: $('btn-reveal'),
+    btnStartTimer: $('btn-start-timer'),
     btnNext: $('btn-next'),
     btnEnd: $('btn-end'),
   };
@@ -101,8 +102,11 @@
               state.questionIndex = m.questionIndex;
               state.totalQuestions = m.totalQuestions;
               state.submitted = 0;
-              showQuestion(m.question, m.endsAt);
+              showQuestion(m.question, m.endsAt, m.timerStarted);
             }
+            break;
+          case 'game:timer-start':
+            startTimer(m.endsAt);
             break;
           case 'game:results':
             showResults(m);
@@ -157,7 +161,7 @@
 
     if (m.phase === 'question') {
       showView('view-game');
-      showQuestion(m.question, m.endsAt);
+      showQuestion(m.question, m.endsAt, m.timerStarted);
       return;
     }
     if (m.phase === 'results') {
@@ -217,7 +221,22 @@
     }
   }
 
-  function showQuestion(text, endsAt) {
+  function startTimer(endsAt) {
+    stopTimer();
+    els.btnStartTimer.classList.add('hidden');
+    els.btnReveal.disabled = false;
+    state.timer = window.startCountdown(
+      endsAt,
+      { bar: els.gBar, secs: els.gSecs, ring: els.gRing },
+      () => {
+        els.gProgress.style.display = 'block';
+        els.gProgress.textContent = 'Time’s up — tallying results…';
+        els.btnReveal.disabled = true;
+      }
+    );
+  }
+
+  function showQuestion(text, endsAt, timerStarted = false) {
     stopTimer();
     state.phase = 'question';
     els.gQNum.textContent = `Question ${state.questionIndex + 1} of ${state.totalQuestions}`;
@@ -228,16 +247,9 @@
     updateProgress();
     updateRosterChips();
     showView('view-game');
-    state.timer = window.startCountdown(
-      endsAt,
-      { bar: els.gBar, secs: els.gSecs, ring: els.gRing },
-      () => {
-        els.gProgress.style.display = 'block';
-        els.gProgress.textContent = 'Time’s up — tallying results…';
-        els.btnReveal.disabled = true;
-      }
-    );
-    els.btnReveal.disabled = false;
+    els.btnStartTimer.classList.toggle('hidden', timerStarted);
+    els.btnReveal.disabled = !timerStarted;
+    if (timerStarted) startTimer(endsAt);
   }
 
   function showResults(m, fromSnapshot = false) {
@@ -255,7 +267,7 @@
 
     renderLeaderboard(els.gLeaderboard, m.leaderboard, null, m.submitted, m.total);
     burstConfetti();
-    els.gVoteChip.textContent = `${m.submitted} of ${m.total} answered`;
+    els.gVoteChip.textContent = `${m.totalSubmitted || m.submitted} total answers`;
     els.gIntended.innerHTML = m.intendedAnswer ? `Intended answer: <b>${esc(m.intendedAnswer)}</b>` : '';
     els.btnEnd.classList.toggle('hidden', !m.last);
     els.btnNext.classList.toggle('hidden', !!m.last);
@@ -276,6 +288,10 @@
 
   els.btnReveal.addEventListener('click', () => {
     TT.send({ type: 'host:reveal', roomCode: state.roomCode });
+  });
+
+  els.btnStartTimer.addEventListener('click', () => {
+    TT.send({ type: 'host:startTimer', roomCode: state.roomCode });
   });
 
   els.btnNext.addEventListener('click', () => {

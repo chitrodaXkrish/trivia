@@ -134,6 +134,7 @@ function roomSnapshot(room, forWs) {
     questionIndex: room.questionIndex,
     totalQuestions: room.questions.length,
     endsAt: room.endsAt,
+    timerStarted: room.timerStarted,
     seconds: QUESTION_TIME_MS / 1000,
     playerCount: room.players.size,
     submitted: room.answers.size,
@@ -146,6 +147,7 @@ function roomSnapshot(room, forWs) {
   if (room.phase === 'results' && room.results) {
     base.leaderboard = room.results.leaderboard;
     base.submitted = room.results.submitted;
+    base.totalSubmitted = room.results.totalSubmitted;
     base.intendedAnswer = room.questions[room.questionIndex]?.answer || null;
   }
 
@@ -185,9 +187,10 @@ function startQuestion(room, index) {
   room.questionIndex = index;
   room.answers = new Map();
   room.results = null;
-  room.endsAt = Date.now() + QUESTION_TIME_MS;
+  room.endsAt = null;
+  room.timerStarted = false;
   if (room.timer) clearTimeout(room.timer);
-  room.timer = setTimeout(() => endQuestion(room), QUESTION_TIME_MS);
+  room.timer = null;
 
   broadcast(room, {
     type: 'game:phase',
@@ -195,6 +198,19 @@ function startQuestion(room, index) {
     questionIndex: index,
     totalQuestions: room.questions.length,
     question: room.questions[index].text,
+    endsAt: null,
+    timerStarted: false,
+    seconds: QUESTION_TIME_MS / 1000,
+  });
+}
+
+function startTimer(room) {
+  if (room.phase !== 'question' || room.timerStarted) return;
+  room.timerStarted = true;
+  room.endsAt = Date.now() + QUESTION_TIME_MS;
+  room.timer = setTimeout(() => endQuestion(room), QUESTION_TIME_MS);
+  broadcast(room, {
+    type: 'game:timer-start',
     endsAt: room.endsAt,
     seconds: QUESTION_TIME_MS / 1000,
   });
@@ -202,11 +218,20 @@ function startQuestion(room, index) {
 
 function endQuestion(room) {
   if (room.phase !== 'question') return;
+  if (!room.timerStarted) return;
   if (room.timer) clearTimeout(room.timer);
   room.timer = null;
 
-  const leaderboard = buildLeaderboard(room.answers);
   const answers = new Map(room.answers);
+  for (const { answer } of answers.values()) {
+    const key = normalizeName(answer);
+    const current = room.cumulativeAnswers.get(key);
+    if (current) current.count += 1;
+    else room.cumulativeAnswers.set(key, { answer: answer.trim(), count: 1 });
+  }
+  const leaderboard = [...room.cumulativeAnswers.values()]
+    .sort((a, b) => b.count - a.count)
+    .map((entry) => ({ answer: entry.answer, count: entry.count }));
   const rankOf = new Map();
   const countOf = new Map();
   leaderboard.forEach((entry, rank) => {
@@ -222,6 +247,7 @@ function endQuestion(room) {
   room.results = {
     leaderboard,
     submitted: room.answers.size,
+    totalSubmitted: [...room.cumulativeAnswers.values()].reduce((sum, entry) => sum + entry.count, 0),
     answers,
     rankOf,
     countOf,
@@ -240,6 +266,7 @@ function endQuestion(room) {
     submitted: room.results.submitted,
     total: room.players.size,
     last: room.questionIndex === room.questions.length - 1,
+    totalSubmitted: room.results.totalSubmitted,
   });
 
   // Each player gets their own result details.
@@ -254,6 +281,7 @@ function endQuestion(room) {
       submitted: room.results.submitted,
       total: room.players.size,
       last: room.questionIndex === room.questions.length - 1,
+      totalSubmitted: room.results.totalSubmitted,
       yourAnswer: room.results.answers.get(player.id)?.answer.trim() || null,
       yourRank: rankOf.get(player.id) || null,
       yourCount: countOf.get(player.id) || null,
@@ -343,8 +371,10 @@ function handleMessage(ws, raw) {
         phase: 'lobby',
         questionIndex: -1,
         answers: new Map(),
+        cumulativeAnswers: new Map(),
         results: null,
         endsAt: null,
+        timerStarted: false,
         timer: null,
         players: new Map(),
         sockets: new Set([ws]),
@@ -377,7 +407,7 @@ function handleMessage(ws, raw) {
       ws.roomRef = room;
       if (room.timer) clearTimeout(room.timer);
       // Resume whatever the room was doing; if mid-question, keep the timer going.
-      if (room.phase === 'question') {
+      if (room.phase === 'question' && room.timerStarted) {
         const left = room.endsAt - Date.now();
         if (left > 0) room.timer = setTimeout(() => endQuestion(room), left);
         else endQuestion(room);
@@ -403,9 +433,17 @@ function handleMessage(ws, raw) {
       return;
     }
 
+    case 'host:startTimer': {
+      const room = rooms.get(String(msg.roomCode || '').toUpperCase());
+      if (!room || ws.role !== 'host') return;
+      startTimer(room);
+      return;
+    }
+
     case 'host:reveal': {
       const room = rooms.get(String(msg.roomCode || '').toUpperCase());
       if (!room || ws.role !== 'host') return;
+      if (!room.timerStarted) return send(ws, { type: 'error', message: 'Start the timer before revealing results.' });
       endQuestion(room);
       return;
     }

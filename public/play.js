@@ -142,6 +142,9 @@
           case 'game:phase':
             if (m.phase === 'question') showQuestion(m);
             break;
+          case 'game:timer-start':
+            startTimer(m.endsAt);
+            break;
           case 'game:results':
             showResults(m);
             break;
@@ -195,6 +198,7 @@
         totalQuestions: m.totalQuestions,
         question: m.question,
         endsAt: m.endsAt,
+        timerStarted: m.timerStarted,
       });
       return;
     }
@@ -221,6 +225,20 @@
     }
   }
 
+  function startTimer(endsAt) {
+    els.pAnswer.disabled = false;
+    els.btnSubmit.disabled = false;
+    els.pTimeup.classList.add('hidden');
+    state.timer = window.startCountdown(
+      endsAt,
+      { bar: els.pBar, secs: els.pSecs, ring: els.pRing },
+      () => {
+        els.pForm.classList.add('hidden');
+        els.pTimeup.classList.remove('hidden');
+      }
+    );
+  }
+
   function showQuestion(m) {
     stopTimer();
     state.phase = 'question';
@@ -234,23 +252,17 @@
     els.pQuestion.textContent = m.question;
     els.pForm.classList.remove('hidden');
     els.pAnswer.value = '';
-    els.pAnswer.disabled = false;
-    els.btnSubmit.disabled = false;
+    els.pAnswer.disabled = !m.timerStarted;
+    els.btnSubmit.disabled = !m.timerStarted;
     els.pSubmittedNote.classList.add('hidden');
-    els.pTimeup.classList.add('hidden');
+    els.pTimeup.textContent = m.timerStarted ? "Time's up — tallying results…" : 'Waiting for the host to start the timer…';
+    els.pTimeup.classList.toggle('hidden', m.timerStarted);
     els.pAnsweredChip.style.display = 'none';
 
     showView('view-question');
     els.pAnswer.focus();
 
-    state.timer = window.startCountdown(
-      m.endsAt,
-      { bar: els.pBar, secs: els.pSecs, ring: els.pRing },
-      () => {
-        els.pForm.classList.add('hidden');
-        els.pTimeup.classList.remove('hidden');
-      }
-    );
+    if (m.timerStarted) startTimer(m.endsAt);
   }
 
   function updateSubmittedUI() {
@@ -295,7 +307,7 @@
 
     els.rQNum.textContent = `Question ${m.questionIndex + 1} of ${m.totalQuestions}`;
     els.rQuestion.textContent = m.question;
-    els.rVoteChip.textContent = `${m.submitted} of ${m.total} answered`;
+    els.rVoteChip.textContent = `${m.totalSubmitted || m.submitted} total answers`;
     els.rLeaderboard.innerHTML = '';
     renderLeaderboard(els.rLeaderboard, m.leaderboard, window.TT.norm(m.yourAnswer), m.submitted, m.total);
     burstConfetti();
