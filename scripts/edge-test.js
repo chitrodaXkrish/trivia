@@ -57,13 +57,14 @@ async function main() {
   const e2 = await once(bad2, 'error');
   check('empty name rejected', !!e2.message);
 
-  // 2. Questions can't be set after the game starts
-  host.send(JSON.stringify({ type: 'host:setQuestions', roomCode: code, questions: [{ text: 'Q1', answer: 'Dr. Sharma' }, { text: 'Q2' }] }));
-  const setQ = await once(host, 'questions:set');
-  check('questions accepted in lobby', setQ.questions.length === 2);
+  // 2. Every room receives the fixed question set and custom questions are rejected
+  check('fixed questions loaded', room.questions.length === 10);
+  host.send(JSON.stringify({ type: 'host:setQuestions', roomCode: code, questions: [{ text: 'custom?' }] }));
+  const fixedError = await once(host, 'error');
+  check('custom questions rejected', fixedError.message.includes('fixed'));
   host.send(JSON.stringify({ type: 'host:start', roomCode: code }));
   const gp = await once(host, 'game:phase');
-  check('game starts after questions set', gp.type === 'game:phase' && gp.phase === 'question');
+  check('game starts with fixed questions', gp.type === 'game:phase' && gp.phase === 'question');
   host.send(JSON.stringify({ type: 'host:setQuestions', roomCode: code, questions: [{ text: 'late?' }] }));
   const e3 = await once(host, 'error');
   check('cannot set questions after start', !!e3.message);
@@ -74,7 +75,7 @@ async function main() {
   const snap = await once(late, 'room:state');
   check('mid-question join gets question', snap.phase === 'question' && !!snap.question && snap.endsAt > Date.now());
 
-  // 4. Answers are normalized: "Dr. Sharma", "dr sharma", "DR. SHARMA" group together
+  // 4. Answers are normalized: "Mr.Kiran Kale", "kiran kale" group together
   const faculty = 'Mr.Kiran Kale';
   const p1 = await openSocket();
   p1.send(JSON.stringify({ type: 'play:join', roomCode: code, name: 'P1' }));
@@ -113,12 +114,18 @@ async function main() {
   const resumed = await once(host2, 'room:state');
   check('host rejoin resumes room in results phase', resumed.phase === 'results');
 
-  // 6. Next question advances, then the final next ends the game
+  // 6. Next question advances through all fixed questions, then the final next ends the game
   host2.send(JSON.stringify({ type: 'host:next', roomCode: code }));
   const q2 = await once(host2, 'game:phase');
   check('next question starts after results', q2.phase === 'question' && q2.questionIndex === 1);
   host2.send(JSON.stringify({ type: 'host:reveal', roomCode: code }));
   await once(host2, 'game:results');
+  for (let questionIndex = 2; questionIndex < 10; questionIndex++) {
+    host2.send(JSON.stringify({ type: 'host:next', roomCode: code }));
+    await once(host2, 'game:phase');
+    host2.send(JSON.stringify({ type: 'host:reveal', roomCode: code }));
+    await once(host2, 'game:results');
+  }
   host2.send(JSON.stringify({ type: 'host:next', roomCode: code }));
   const ended = await once(host2, 'game:ended');
   check('final next ends the game', !!ended);

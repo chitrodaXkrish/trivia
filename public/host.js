@@ -182,25 +182,12 @@
     row.innerHTML = `
       <div class="row row--between">
         <span class="q-row__num">Question ${i + 1}</span>
-        <button class="btn btn--sm btn--danger-ghost q-remove" type="button">Remove</button>
       </div>
       <div class="q-row__body">
         <div class="q-row__inputs">
-          <input class="input q-text-input" placeholder="Who is …?" value="${esc(q.text)}" maxlength="200" />
-          <input class="input q-answer-input" placeholder="Intended answer (optional) — e.g. Dr. Rao" value="${esc(q.answer || '')}" maxlength="60" />
+          <div class="input q-text-input">${esc(q.text)}</div>
         </div>
       </div>`;
-    row.querySelector('.q-remove').addEventListener('click', () => {
-      state.questions.splice(i, 1);
-      renderQuestionList();
-    });
-    row.querySelector('.q-text-input').addEventListener('input', (e) => {
-      state.questions[i].text = e.target.value;
-      updateStartEnabled();
-    });
-    row.querySelector('.q-answer-input').addEventListener('input', (e) => {
-      state.questions[i].answer = e.target.value;
-    });
     return row;
   }
 
@@ -213,24 +200,12 @@
   }
 
   function updateStartEnabled() {
-    const hasAny = state.questions.some((q) => q.text.trim().length > 0);
-    els.btnStart.disabled = !hasAny;
+    els.btnStart.disabled = state.questions.length === 0;
   }
 
-  els.btnAddQ.addEventListener('click', () => {
-    state.questions.push({ text: '', answer: '' });
-    renderQuestionList();
-    const inputs = els.qList.querySelectorAll('.q-text-input');
-    if (inputs.length) inputs[inputs.length - 1].focus();
-  });
-
   els.btnStart.addEventListener('click', () => {
-    const valid = state.questions.filter((q) => q.text.trim());
-    state.questions = valid;
-    renderQuestionList();
-    if (valid.length === 0) return;
-    TT.send({ type: 'host:setQuestions', roomCode: state.roomCode, questions: valid });
-    setTimeout(() => TT.send({ type: 'host:start', roomCode: state.roomCode }), 80);
+    if (state.questions.length === 0) return;
+    TT.send({ type: 'host:start', roomCode: state.roomCode });
   });
 
   /* ---------- live game ---------- */

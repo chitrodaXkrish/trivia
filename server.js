@@ -15,6 +15,18 @@ const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT && Number(process.env.PORT) ? Number(process.env.PORT) : 3000;
 const QUESTION_TIME_MS = 20_000;
 const ROOM_TTL_MS = 30 * 60 * 1000; // rooms expire 30 min after creation
+const FIXED_QUESTIONS = [
+  'If you had to choose one faculty member to accompany you on a completely unplanned adventure, who would you pick? 😏',
+  'Which faculty member has the strongest “I know what you guys are planning” energy? 👀',
+  'If the faculty had a secret group chat, who would probably send the most messages? 😂',
+  'Which faculty member would be the most fun to have at a college party or celebration? 🎉',
+  'If you had to pick one faculty member to help you get out of trouble, who would you call first? 😎',
+  'Which faculty member would be the hardest to fool with a fake excuse? 👀',
+  'If our faculty formed a comedy team, who would be the unexpected star of the group? 🎤😂',
+  'Which faculty member would you trust the most with a secret that absolutely nobody else should know? 🤫',
+  'If one faculty member had to become the student for a day, who would have the most fun doing it? 😆',
+  'If you could nominate one faculty member for “Most Likely to Surprise Everyone,” who would you choose? 🔥',
+].map((text) => ({ text, answer: null }));
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
@@ -327,7 +339,7 @@ function handleMessage(ws, raw) {
         code: genCode(),
         hostName: String(msg.name || 'The Host').trim().slice(0, 40) || 'The Host',
         hostWs: ws,
-        questions: [],
+        questions: FIXED_QUESTIONS.map((question) => ({ ...question })),
         phase: 'lobby',
         questionIndex: -1,
         answers: new Map(),
@@ -378,13 +390,7 @@ function handleMessage(ws, raw) {
     case 'host:setQuestions': {
       const room = rooms.get(String(msg.roomCode || '').toUpperCase());
       if (!room || ws.role !== 'host') return send(ws, { type: 'error', message: 'Not in a room.' });
-      if (room.phase !== 'lobby') return send(ws, { type: 'error', message: 'Questions can only be set before the game starts.' });
-      const questions = (Array.isArray(msg.questions) ? msg.questions : [])
-        .map(sanitizeQuestion)
-        .filter(Boolean)
-        .slice(0, 100);
-      room.questions = questions;
-      send(ws, { type: 'questions:set', questions });
+      send(ws, { type: 'error', message: 'Questions are fixed for every game.' });
       return;
     }
 

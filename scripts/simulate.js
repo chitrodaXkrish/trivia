@@ -9,10 +9,10 @@
 const { WebSocket } = require('ws');
 
 const N = parseInt(process.argv[2] || '100', 10);
-const Q_COUNT = parseInt(process.argv[3] || '3', 10);
+const REQUESTED_Q_COUNT = parseInt(process.argv[3] || '10', 10);
 const URL = process.env.URL || 'ws://localhost:3000';
 
-const NAME_POOL = Array.from({ length: 40 }, (_, i) => `Dr. Teacher ${i + 1}`);
+const NAME_POOL = ['Mr.Kiran Kale', 'Mr. Anurag D. Singh', 'Mr. Sachin Pawar', 'Dr. Rajesh Giri'];
 const HOST = 'Mr. Host';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -51,23 +51,18 @@ function once(ws, type, timeout = 60_000) {
 }
 
 async function main() {
-  console.log(`Simulating ${N} players × ${Q_COUNT} questions against ${URL}…\n`);
+  console.log(`Simulating ${N} players against ${URL}…\n`);
 
   const t0 = Date.now();
 
-  // 1. Host creates a room and sets questions.
+  // 1. Host creates a room with the fixed questions.
   const host = await openSocket();
   host.send(JSON.stringify({ type: 'host:create', name: HOST }));
   const created = await once(host, 'room:state');
   const code = created.roomCode;
   console.log(`Room created: ${code} (phase=${created.phase})`);
 
-  const questions = Array.from({ length: Q_COUNT }, (_, i) => ({
-    text: `Who is the kindest teacher of all? (#${i + 1})`,
-    answer: i === 0 ? 'Dr. Sharma' : null,
-  }));
-  host.send(JSON.stringify({ type: 'host:setQuestions', roomCode: code, questions }));
-  await once(host, 'questions:set');
+  const Q_COUNT = Math.min(REQUESTED_Q_COUNT, created.questions.length);
 
   // 2. Players join.
   const players = [];
@@ -91,7 +86,7 @@ async function main() {
       players.map(async (ws) => {
         await once(ws, 'game:phase');
         // Skew the answers so a few names stand out (like a real staff room).
-        const pick = Math.random() < 0.4 ? 'Dr. Sharma' : NAME_POOL[Math.floor(Math.random() * NAME_POOL.length)];
+        const pick = NAME_POOL[Math.floor(Math.random() * NAME_POOL.length)];
         ws.send(JSON.stringify({ type: 'play:answer', roomCode: code, answer: pick }));
         await once(ws, 'answer:ack');
       })
