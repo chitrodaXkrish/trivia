@@ -63,6 +63,14 @@
     } catch {}
   };
 
+  const clearSavedState = () => {
+    state.roomCode = null;
+    state.createdOnce = false;
+    try {
+      sessionStorage.removeItem('tt_host');
+    } catch {}
+  };
+
   /* ---------- websocket ---------- */
 
   function connectHost() {
@@ -102,6 +110,7 @@
           case 'game:ended':
             state.phase = 'ended';
             stopTimer();
+            clearSavedState();
             showView('view-ended');
             break;
           case 'roster':
@@ -113,6 +122,14 @@
             updateProgress();
             break;
           case 'error':
+            if (state.createdOnce && (m.message.includes('already ended') || m.message.includes('Room not found') || m.message.includes('already claimed'))) {
+              clearSavedState();
+              if (state.hostName) {
+                setTimeout(() => {
+                  TT.send({ type: 'host:create', name: state.hostName });
+                }, 100);
+              }
+            }
             flashError(els.createError, m.message);
             flashError(els.setupError, m.message);
             break;

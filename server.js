@@ -27,7 +27,12 @@ const rooms = new Map(); // roomCode -> room
 /* ---------------- helpers ---------------- */
 
 function genCode() {
-  return 'UNI26';
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  do {
+    code = Array.from({ length: 5 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+  } while (rooms.has(code));
+  return code;
 }
 
 function send(ws, msg) {
@@ -282,6 +287,17 @@ function handleMessage(ws, raw) {
 
   switch (msg.type) {
     case 'host:create': {
+      if (ws.role === 'host' && ws.roomRef) {
+        const currentRoom = ws.roomRef;
+        if (currentRoom.phase !== 'ended') {
+          return send(ws, { type: 'error', message: 'Already connected.' });
+        }
+        currentRoom.sockets.delete(ws);
+        if (currentRoom.hostWs === ws) currentRoom.hostWs = null;
+        ws.role = null;
+        ws.id = null;
+        ws.roomRef = null;
+      }
       if (ws.role) return send(ws, { type: 'error', message: 'Already connected.' });
       const room = {
         code: genCode(),
@@ -310,8 +326,9 @@ function handleMessage(ws, raw) {
 
     case 'host:rejoin': {
       const room = rooms.get(String(msg.roomCode || '').toUpperCase());
-      if (!room || (room.hostWs && room.hostWs.readyState === ws.OPEN)) {
-        return send(ws, { type: 'error', message: 'Room not found or already claimed.' });
+      const hostAlreadyConnected = !!room?.hostWs && room.hostWs !== ws && room.hostWs.readyState === room.hostWs.OPEN;
+      if (!room || room.phase === 'ended' || hostAlreadyConnected) {
+        return send(ws, { type: 'error', message: room && room.phase === 'ended' ? 'This game has already ended.' : 'Room not found or already claimed.' });
       }
       room.hostWs = ws;
       room.sockets.add(ws);
