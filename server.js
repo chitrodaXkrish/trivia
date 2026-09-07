@@ -24,6 +24,10 @@ const wss = new WebSocketServer({ server });
 
 const rooms = new Map(); // roomCode -> room
 
+const FACULTY_NAMES = [
+  'Mrs. Mudra Doshi', 'Mr. Sachin Pawar', 'Dr. Rajesh Giri', 'Mr. Sushant Gawade', 'Mr. Sandesh Patil', 'Mr. Allan Lopes', 'Mr. Deepak Bhise', 'Mrs. Chaitali Mhatre', 'Mr. Iqbal Shaikh', 'Mr. Abhishesh Tripathi', 'Mrs. Usha Nasale', 'Mrs. Rovina Dbritto', 'Mr. Karthik Nadar', 'Mr. Ramchandra Khapare', 'Mr. Umesh Mohite', 'Mrs. Nehali Mhatre', 'Mr. Anthony Paul', 'Mr. Moses Lopes', 'Mrs. Silviya Dmonte', 'Mrs. Poonam Thakre', 'Mr. William Foss', 'Ms. Vedika Bhoir', 'Mr. Ashraf Siddiqui', 'Ms. Marina Thomas', 'Mr. Deepak Nalawade', 'Mr. Rajesh Dubey', 'Mr. Anurag Singh', 'Mr. Nikhil Sontakke', 'Mrs. Mitali Poojari', 'Dr. Jitendra Patil', 'Mr. Bhanudas Vaity', 'Mr. Sanil Lakhimale', 'Mr. Siddharth Jambhavadekar', 'Mr. Ravindra Sonavane', 'Ms. Tanvi S. Patil', 'Ms. Tanvi M. Patil', 'Ms. Sakshi Rokade', 'Mr. Amogh Keluskar', 'Ms. Arshiya Quereshi', 'Ms. Aditi Singh', 'Mr. Mohan Kumar', 'Ms. Swati Mishra', 'Mr. Dharmesh Kumar', 'Mr. Saviour Fargose', 'Mr. Sandeep Yadav', 'Ms. Ashwini Kardile', 'Ms. Aarti Shinde', 'Mr. Hemraj Swami', 'Ms. Mahalaxmi Palinje', 'Ms. Jemika Mali', 'Mr. Vaibhav Dhamnaskar', 'Ms. Aachal R. Dubey', 'Ms. Dr. Sangita Dubey', 'Mr. Mohd. Raqheeb Momin', 'Mr. Deepak Kadam', 'Mr. Ayush Mishra', 'Mr. Varun Gandhi', 'Mr. Saurish Chanda', 'Mr. Utkarsh Anand', 'Dr.Jitendra Saturwar', 'Dr. John Kenny', 'Dr. Bipin Sonavane', 'Ms. Damini Bhuva', 'Mr.Sandeep Dubey', 'Ms. Trecia Fernandes', 'Mr. Jashveer Singh', 'Ms.Palak Thakkar', 'Mr.Kiran Kale', 'Ms. Sonia Fernandes', 'Dr. Mubashir Khan', 'Mr. Samuel Jacobs', 'Mr. Abhishek Patra', 'Ms. Kinjal Borse', 'Dr. Aaradhana Khare', 'Mr. Prashant Manjarekar', 'Mr. Binod Singh', 'Ms.Pravin Jhulum', 'Mr. Narayan Labdhe', 'Mr. Gaurav Patil', 'Ms. Pooja Patil', 'Mr. Vilas Fargose', 'Ms. Bidya Das', 'Mr. Manish Pawade', 'Ms. Priyanka Shrivardhankar', 'Mr. Yash Pimple', 'Mr. Nikhil Sankhe', 'Mr. Yuvraj Todankar', 'Mr. Swapnil Karvir'
+];
+
 /* ---------------- helpers ---------------- */
 
 function genCode() {
@@ -57,6 +61,25 @@ function normalizeName(raw) {
     .replace(/\s+/g, ' ')
     .replace(/\./g, '')
     .replace(/[^a-z0-9\u00C0-\u024F ]/g, '');
+}
+
+function normalizeFacultyName(raw) {
+  return String(raw || '')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\./g, ' ')
+    .replace(/[-–—]/g, ' ')
+    .replace(/^(mr|mrs|ms|miss|dr)\b\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function resolveFacultyAnswer(raw) {
+  const key = normalizeFacultyName(raw);
+  if (!key) return null;
+  const exact = FACULTY_NAMES.find((name) => normalizeFacultyName(name) === key);
+  if (exact) return exact;
+  return FACULTY_NAMES.find((name) => normalizeFacultyName(name.replace(/^(Mr|Mrs|Ms|Miss|Dr)\.?\s+/i, '')) === key) || null;
 }
 
 function sanitizeQuestion(q) {
@@ -406,8 +429,9 @@ function handleMessage(ws, raw) {
       const room = rooms.get(String(msg.roomCode || '').toUpperCase());
       if (!room || ws.role !== 'player') return;
       if (room.phase !== 'question') return;
-      const answer = String(msg.answer || '').trim().slice(0, 60);
-      if (!answer) return send(ws, { type: 'error', message: 'Type an answer first.' });
+      const raw = String(msg.answer || '').trim().slice(0, 60);
+      const answer = resolveFacultyAnswer(raw);
+      if (!answer) return send(ws, { type: 'error', message: 'Please select a faculty from the suggestions only.' });
       if (Date.now() >= room.endsAt) return; // too late; results are coming
       room.answers.set(ws.id, { answer, at: Date.now() });
       send(ws, { type: 'answer:ack', answer });

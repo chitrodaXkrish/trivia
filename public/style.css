@@ -399,6 +399,33 @@ label.field {
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
+.answer-suggestions {
+  margin-top: 8px;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 28px -18px rgba(36, 31, 58, 0.45);
+}
+
+.answer-suggestion {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  text-align: left;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.answer-suggestion:hover,
+.answer-suggestion:focus-visible {
+  background: var(--teal-soft);
+  outline: none;
+}
+
 .input:focus {
   border-color: var(--marigold);
   box-shadow: 0 0 0 4px rgba(246, 168, 33, 0.22);

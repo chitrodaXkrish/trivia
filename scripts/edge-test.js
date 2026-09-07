@@ -75,16 +75,27 @@ async function main() {
   check('mid-question join gets question', snap.phase === 'question' && !!snap.question && snap.endsAt > Date.now());
 
   // 4. Answers are normalized: "Dr. Sharma", "dr sharma", "DR. SHARMA" group together
+  const faculty = 'Mr.Kiran Kale';
   const p1 = await openSocket();
   p1.send(JSON.stringify({ type: 'play:join', roomCode: code, name: 'P1' }));
   await once(p1, 'room:state');
+  await sleep(50);
   const p2 = await openSocket();
   p2.send(JSON.stringify({ type: 'play:join', roomCode: code, name: 'P2' }));
   await once(p2, 'room:state');
-  p1.send(JSON.stringify({ type: 'play:answer', roomCode: code, answer: 'Dr. Sharma' }));
-  p2.send(JSON.stringify({ type: 'play:answer', roomCode: code, answer: 'dr sharma' }));
+  await sleep(50);
+  p1.send(JSON.stringify({ type: 'play:answer', roomCode: code, answer: faculty }));
+  p2.send(JSON.stringify({ type: 'play:answer', roomCode: code, answer: 'kiran kale' }));
   await once(p1, 'answer:ack');
   await once(p2, 'answer:ack');
+
+  const forbid = await openSocket();
+  forbid.send(JSON.stringify({ type: 'play:join', roomCode: code, name: 'Blocker' }));
+  await once(forbid, 'room:state');
+  await sleep(50);
+  forbid.send(JSON.stringify({ type: 'play:answer', roomCode: code, answer: 'Not a faculty name' }));
+  const eCustom = await once(forbid, 'error');
+  check('custom answer rejected', !!eCustom.message);
 
   host.send(JSON.stringify({ type: 'host:reveal', roomCode: code }));
   const results = await once(host, 'game:results');

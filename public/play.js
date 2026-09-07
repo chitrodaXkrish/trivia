@@ -3,6 +3,10 @@
 (function () {
   const { TT, showView, renderLeaderboard, burstConfetti, esc, showBanner } = window.TT;
 
+  const FACULTY_NAMES = [
+    'Mrs. Mudra Doshi', 'Mr. Sachin Pawar', 'Dr. Rajesh Giri', 'Mr. Sushant Gawade', 'Mr. Sandesh Patil', 'Mr. Allan Lopes', 'Mr. Deepak Bhise', 'Mrs. Chaitali Mhatre', 'Mr. Iqbal Shaikh', 'Mr. Abhishesh Tripathi', 'Mrs. Usha Nasale', 'Mrs. Rovina Dbritto', 'Mr. Karthik Nadar', 'Mr. Ramchandra Khapare', 'Mr. Umesh Mohite', 'Mrs. Nehali Mhatre', 'Mr. Anthony Paul', 'Mr. Moses Lopes', 'Mrs. Silviya Dmonte', 'Mrs. Poonam Thakre', 'Mr. William Foss', 'Ms. Vedika Bhoir', 'Mr. Ashraf Siddiqui', 'Ms. Marina Thomas', 'Mr. Deepak Nalawade', 'Mr. Rajesh Dubey', 'Mr. Anurag Singh', 'Mr. Nikhil Sontakke', 'Mrs. Mitali Poojari', 'Dr. Jitendra Patil', 'Mr. Bhanudas Vaity', 'Mr. Sanil Lakhimale', 'Mr. Siddharth Jambhavadekar', 'Mr. Ravindra Sonavane', 'Ms. Tanvi S. Patil', 'Ms. Tanvi M. Patil', 'Ms. Sakshi Rokade', 'Mr. Amogh Keluskar', 'Ms. Arshiya Quereshi', 'Ms. Aditi Singh', 'Mr. Mohan Kumar', 'Ms. Swati Mishra', 'Mr. Dharmesh Kumar', 'Mr. Saviour Fargose', 'Mr. Sandeep Yadav', 'Ms. Ashwini Kardile', 'Ms. Aarti Shinde', 'Mr. Hemraj Swami', 'Ms. Mahalaxmi Palinje', 'Ms. Jemika Mali', 'Mr. Vaibhav Dhamnaskar', 'Ms. Aachal R. Dubey', 'Ms. Dr. Sangita Dubey', 'Mr. Mohd. Raqheeb Momin', 'Mr. Deepak Kadam', 'Mr. Ayush Mishra', 'Mr. Varun Gandhi', 'Mr. Saurish Chanda', 'Mr. Utkarsh Anand', 'Dr.Jitendra Saturwar', 'Dr. John Kenny', 'Dr. Bipin Sonavane', 'Ms. Damini Bhuva', 'Mr.Sandeep Dubey', 'Ms. Trecia Fernandes', 'Mr. Jashveer Singh', 'Ms.Palak Thakkar', 'Mr.Kiran Kale', 'Ms. Sonia Fernandes', 'Dr. Mubashir Khan', 'Mr. Samuel Jacobs', 'Mr. Abhishek Patra', 'Ms. Kinjal Borse', 'Dr. Aaradhana Khare', 'Mr. Prashant Manjarekar', 'Mr. Binod Singh', 'Ms.Pravin Jhulum', 'Mr. Narayan Labdhe', 'Mr. Gaurav Patil', 'Ms. Pooja Patil', 'Mr. Vilas Fargose', 'Ms. Bidya Das', 'Mr. Manish Pawade', 'Ms. Priyanka Shrivardhankar', 'Mr. Yash Pimple', 'Mr. Nikhil Sankhe', 'Mr. Yuvraj Todankar', 'Mr. Swapnil Karvir'
+  ];
+
   const state = {
     roomCode: null,
     name: '',
@@ -32,6 +36,7 @@
     pForm: $('p-form'),
     pAnswer: $('p-answer'),
     btnSubmit: $('btn-submit'),
+    pAnswerSuggestions: $('p-answer-suggestions'),
     pSubmittedNote: $('p-submitted-note'),
     pTimeup: $('p-timeup'),
     pAnsweredChip: $('p-answered-chip'),
@@ -61,6 +66,64 @@
     setTimeout(() => {
       if (els.joinError.innerHTML.includes(message)) els.joinError.innerHTML = '';
     }, 5000);
+  }
+
+  function normalizeFacultyName(value) {
+    return String(value || '')
+      .replace(/\u00A0/g, ' ')
+      .replace(/\./g, ' ')
+      .replace(/[-–—]/g, ' ')
+      .replace(/^(mr|mrs|ms|miss|dr)\b\s*/i, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  function resolveFacultyAnswer(value) {
+    const key = normalizeFacultyName(value);
+    if (!key) return null;
+    const exact = FACULTY_NAMES.find((name) => normalizeFacultyName(name) === key);
+    if (exact) return exact;
+    const stripped = FACULTY_NAMES.find((name) => normalizeFacultyName(name.replace(/^(Mr|Mrs|Ms|Miss|Dr)\.?\s+/i, '')) === key);
+    return stripped || null;
+  }
+
+  function buildSuggestions(query) {
+    const trimmed = String(query || '').trim();
+    if (trimmed.length < 2) return [];
+    const key = normalizeFacultyName(trimmed);
+    return FACULTY_NAMES.filter((name) => {
+      const label = normalizeFacultyName(name.replace(/^(Mr|Mrs|Ms|Miss|Dr)\.?\s+/i, ''));
+      return label.includes(key) || normalizeFacultyName(name).includes(key);
+    }).slice(0, 8);
+  }
+
+  function renderSuggestions(query) {
+    const items = buildSuggestions(query);
+    els.pAnswerSuggestions.innerHTML = '';
+    if (!items.length) {
+      els.pAnswerSuggestions.classList.add('hidden');
+      return;
+    }
+    items.forEach((name) => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'answer-suggestion';
+      item.textContent = name;
+      item.addEventListener('click', () => {
+        els.pAnswer.value = name;
+        els.pAnswerSuggestions.classList.add('hidden');
+      });
+      els.pAnswerSuggestions.appendChild(item);
+    });
+    els.pAnswerSuggestions.classList.remove('hidden');
+  }
+
+  function clearAnswerSuggestions() {
+    setTimeout(() => {
+      els.pAnswerSuggestions.classList.add('hidden');
+      els.pAnswerSuggestions.innerHTML = '';
+    }, 150);
   }
 
   /* ---------- websocket ---------- */
@@ -196,16 +259,29 @@
 
   function submitAnswer() {
     const answer = els.pAnswer.value.trim();
-    if (!answer) {
+    const canonical = resolveFacultyAnswer(answer);
+    if (!canonical) {
       els.pAnswer.focus();
+      els.pAnswer.setAttribute('aria-invalid', 'true');
+      els.pAnswer.value = '';
+      els.pAnswerSuggestions.classList.add('hidden');
+      showBanner('Please select a faculty from the suggestions only.', 2500);
       return;
     }
-    TT.send({ type: 'play:answer', roomCode: state.roomCode, answer });
+    els.pAnswer.removeAttribute('aria-invalid');
+    TT.send({ type: 'play:answer', roomCode: state.roomCode, answer: canonical });
   }
 
   els.btnSubmit.addEventListener('click', submitAnswer);
+  els.pAnswer.addEventListener('input', () => {
+    renderSuggestions(els.pAnswer.value);
+  });
+  els.pAnswer.addEventListener('blur', clearAnswerSuggestions);
   els.pAnswer.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') submitAnswer();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      submitAnswer();
+    }
   });
 
   /* ---------- results ---------- */
