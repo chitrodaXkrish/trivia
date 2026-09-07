@@ -2,7 +2,7 @@
  * Teacher Trivia — game server.
  *
  * Hosts a WebSocket server that runs the whole game state machine:
- *   lobby -> question (20s timer) -> results -> (next question) -> ended
+ *   lobby -> question (60s timer) -> results -> (next question) -> ended
  *
  * Rooms live in memory; a single Node process comfortably handles the
  * 100-user classroom case this game is designed for.
@@ -13,7 +13,7 @@ const express = require('express');
 const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT && Number(process.env.PORT) ? Number(process.env.PORT) : 3000;
-const QUESTION_TIME_MS = 20_000;
+const QUESTION_TIME_MS = 60_000;
 const ROOM_TTL_MS = 30 * 60 * 1000; // rooms expire 30 min after creation
 
 const app = express();
