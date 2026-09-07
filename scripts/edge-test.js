@@ -120,7 +120,7 @@ async function main() {
   // 6. Next question advances through all fixed questions, then the final next ends the game
   host2.send(JSON.stringify({ type: 'host:next', roomCode: code }));
   const q2 = await once(host2, 'game:phase');
-  check('next question starts after results', q2.phase === 'question' && q2.questionIndex === 1);
+  check('next question waits for its own timer', q2.phase === 'question' && q2.questionIndex === 1 && q2.timerStarted === false && q2.endsAt === null);
   host2.send(JSON.stringify({ type: 'host:startTimer', roomCode: code }));
   await once(host2, 'game:timer-start');
   host2.send(JSON.stringify({ type: 'host:reveal', roomCode: code }));

@@ -185,6 +185,7 @@ function announceSubmitted(room) {
 function startQuestion(room, index) {
   room.phase = 'question';
   room.questionIndex = index;
+  room.timerGeneration += 1;
   room.answers = new Map();
   room.results = null;
   room.endsAt = null;
@@ -208,7 +209,8 @@ function startTimer(room) {
   if (room.phase !== 'question' || room.timerStarted) return;
   room.timerStarted = true;
   room.endsAt = Date.now() + QUESTION_TIME_MS;
-  room.timer = setTimeout(() => endQuestion(room), QUESTION_TIME_MS);
+  const generation = room.timerGeneration;
+  room.timer = setTimeout(() => endQuestion(room, generation), QUESTION_TIME_MS);
   broadcast(room, {
     type: 'game:timer-start',
     endsAt: room.endsAt,
@@ -216,8 +218,9 @@ function startTimer(room) {
   });
 }
 
-function endQuestion(room) {
+function endQuestion(room, generation = null) {
   if (room.phase !== 'question') return;
+  if (generation !== null && generation !== room.timerGeneration) return;
   if (!room.timerStarted) return;
   if (room.timer) clearTimeout(room.timer);
   room.timer = null;
@@ -375,6 +378,7 @@ function handleMessage(ws, raw) {
         results: null,
         endsAt: null,
         timerStarted: false,
+        timerGeneration: 0,
         timer: null,
         players: new Map(),
         sockets: new Set([ws]),
@@ -409,7 +413,10 @@ function handleMessage(ws, raw) {
       // Resume whatever the room was doing; if mid-question, keep the timer going.
       if (room.phase === 'question' && room.timerStarted) {
         const left = room.endsAt - Date.now();
-        if (left > 0) room.timer = setTimeout(() => endQuestion(room), left);
+        if (left > 0) {
+          const generation = room.timerGeneration;
+          room.timer = setTimeout(() => endQuestion(room, generation), left);
+        }
         else endQuestion(room);
       }
       send(ws, roomSnapshot(room, ws));
