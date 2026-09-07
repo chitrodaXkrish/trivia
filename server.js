@@ -135,6 +135,7 @@ function roomSnapshot(room, forWs) {
     totalQuestions: room.questions.length,
     endsAt: room.endsAt,
     timerStarted: room.timerStarted,
+    serverNow: Date.now(),
     seconds: QUESTION_TIME_MS / 1000,
     playerCount: room.players.size,
     submitted: room.answers.size,
@@ -214,6 +215,7 @@ function startTimer(room) {
   broadcast(room, {
     type: 'game:timer-start',
     endsAt: room.endsAt,
+    serverNow: Date.now(),
     seconds: QUESTION_TIME_MS / 1000,
   });
 }

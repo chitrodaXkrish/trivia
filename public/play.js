@@ -143,7 +143,7 @@
             if (m.phase === 'question') showQuestion(m);
             break;
           case 'game:timer-start':
-            startTimer(m.endsAt);
+            startTimer(m.endsAt, m.serverNow, m.seconds);
             break;
           case 'game:results':
             showResults(m);
@@ -199,6 +199,8 @@
         question: m.question,
         endsAt: m.endsAt,
         timerStarted: m.timerStarted,
+        serverNow: m.serverNow,
+        seconds: m.seconds,
       });
       return;
     }
@@ -225,17 +227,20 @@
     }
   }
 
-  function startTimer(endsAt) {
+  function startTimer(endsAt, serverNow = Date.now(), seconds = 20) {
+    const clockOffset = serverNow - Date.now();
+    const localEndsAt = endsAt - clockOffset;
     els.pAnswer.disabled = false;
     els.btnSubmit.disabled = false;
     els.pTimeup.classList.add('hidden');
     state.timer = window.startCountdown(
-      endsAt,
+      localEndsAt,
       { bar: els.pBar, secs: els.pSecs, ring: els.pRing },
       () => {
         els.pForm.classList.add('hidden');
         els.pTimeup.classList.remove('hidden');
-      }
+      },
+      seconds
     );
   }
 
@@ -262,7 +267,7 @@
     showView('view-question');
     els.pAnswer.focus();
 
-    if (m.timerStarted) startTimer(m.endsAt);
+    if (m.timerStarted) startTimer(m.endsAt, m.serverNow, m.seconds);
   }
 
   function updateSubmittedUI() {

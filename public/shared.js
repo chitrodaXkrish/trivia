@@ -177,7 +177,7 @@ window.TT = (() => {
  * els: { bar, secs, ring } — ring is an SVG circle whose dashoffset fills with time.
  * Returns { stop }.
  */
-window.startCountdown = function startCountdown(endsAt, els, onDone) {
+window.startCountdown = function startCountdown(endsAt, els, onDone, totalSeconds = 20) {
   const { bar, secs, ring } = els;
   let raf = null;
   let ringC = null;
@@ -189,10 +189,10 @@ window.startCountdown = function startCountdown(endsAt, els, onDone) {
   const tick = () => {
     const remaining = Math.max(0, endsAt - Date.now());
     const secsLeft = remaining / 1000;
-    const pct = Math.max(0, Math.min(100, (remaining / 10000) * 100));
+    const pct = Math.max(0, Math.min(100, (remaining / (totalSeconds * 1000)) * 100));
     if (bar) bar.style.width = `${pct}%`;
     if (ringC) ring.style.strokeDashoffset = `${ringC * (1 - pct / 100)}`;
-    if (secs) secs.textContent = Math.ceil(secsLeft);
+    if (secs) secs.textContent = Math.min(totalSeconds, Math.ceil(secsLeft));
     if (secs && secsLeft <= 3.05) {
       const timer = secs.closest('.timer');
       if (timer) timer.classList.add('timer--urgent');

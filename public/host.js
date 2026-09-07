@@ -106,7 +106,7 @@
             }
             break;
           case 'game:timer-start':
-            startTimer(m.endsAt);
+            startTimer(m.endsAt, m.serverNow, m.seconds);
             break;
           case 'game:results':
             showResults(m);
@@ -161,7 +161,7 @@
 
     if (m.phase === 'question') {
       showView('view-game');
-      showQuestion(m.question, m.endsAt, m.timerStarted);
+      showQuestion(m.question, m.endsAt, m.timerStarted, m.serverNow, m.seconds);
       return;
     }
     if (m.phase === 'results') {
@@ -221,22 +221,25 @@
     }
   }
 
-  function startTimer(endsAt) {
+  function startTimer(endsAt, serverNow = Date.now(), seconds = 20) {
+    const clockOffset = serverNow - Date.now();
+    const localEndsAt = endsAt - clockOffset;
     stopTimer();
     els.btnStartTimer.classList.add('hidden');
     els.btnReveal.disabled = false;
     state.timer = window.startCountdown(
-      endsAt,
+      localEndsAt,
       { bar: els.gBar, secs: els.gSecs, ring: els.gRing },
       () => {
         els.gProgress.style.display = 'block';
         els.gProgress.textContent = 'Time’s up — tallying results…';
         els.btnReveal.disabled = true;
-      }
+      },
+      seconds
     );
   }
 
-  function showQuestion(text, endsAt, timerStarted = false) {
+  function showQuestion(text, endsAt, timerStarted = false, serverNow = Date.now(), seconds = 20) {
     stopTimer();
     state.phase = 'question';
     els.gQNum.textContent = `Question ${state.questionIndex + 1} of ${state.totalQuestions}`;
@@ -249,7 +252,7 @@
     showView('view-game');
     els.btnStartTimer.classList.toggle('hidden', timerStarted);
     els.btnReveal.disabled = !timerStarted;
-    if (timerStarted) startTimer(endsAt);
+    if (timerStarted) startTimer(endsAt, serverNow, seconds);
   }
 
   function showResults(m, fromSnapshot = false) {
