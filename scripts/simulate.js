@@ -97,7 +97,7 @@ async function main() {
       })
     );
 
-    // All players answered — reveal early instead of waiting out the 60s timer.
+    // All players answered — reveal early instead of waiting out the 20s timer.
     host.send(JSON.stringify({ type: 'host:reveal', roomCode: code }));
 
     const results = await resultsP;
