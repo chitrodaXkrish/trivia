@@ -2,7 +2,7 @@
  * Teacher Trivia — game server.
  *
  * Hosts a WebSocket server that runs the whole game state machine:
- *   lobby -> question (10s timer) -> results -> (next question) -> ended
+ *   lobby -> question (15s timer) -> results -> (next question) -> ended
  *
  * Rooms live in memory; a single Node process comfortably handles the
  * 100-user classroom case this game is designed for.
@@ -13,7 +13,7 @@ const express = require('express');
 const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT && Number(process.env.PORT) ? Number(process.env.PORT) : 3000;
-const QUESTION_TIME_MS = 10_000;
+const QUESTION_TIME_MS = 15_000;
 const ROOM_TTL_MS = 30 * 60 * 1000; // rooms expire 30 min after creation
 
 const app = express();
@@ -25,6 +25,7 @@ const wss = new WebSocketServer({ server });
 const rooms = new Map(); // roomCode -> room
 
 const FACULTY_NAMES = [
+  'Mr. Anurag D. Singh',
   'Mrs. Mudra Doshi', 'Mr. Sachin Pawar', 'Dr. Rajesh Giri', 'Mr. Sushant Gawade', 'Mr. Sandesh Patil', 'Mr. Allan Lopes', 'Mr. Deepak Bhise', 'Mrs. Chaitali Mhatre', 'Mr. Iqbal Shaikh', 'Mr. Abhishesh Tripathi', 'Mrs. Usha Nasale', 'Mrs. Rovina Dbritto', 'Mr. Karthik Nadar', 'Mr. Ramchandra Khapare', 'Mr. Umesh Mohite', 'Mrs. Nehali Mhatre', 'Mr. Anthony Paul', 'Mr. Moses Lopes', 'Mrs. Silviya Dmonte', 'Mrs. Poonam Thakre', 'Mr. William Foss', 'Ms. Vedika Bhoir', 'Mr. Ashraf Siddiqui', 'Ms. Marina Thomas', 'Mr. Deepak Nalawade', 'Mr. Rajesh Dubey', 'Mr. Anurag Singh', 'Mr. Nikhil Sontakke', 'Mrs. Mitali Poojari', 'Dr. Jitendra Patil', 'Mr. Bhanudas Vaity', 'Mr. Sanil Lakhimale', 'Mr. Siddharth Jambhavadekar', 'Mr. Ravindra Sonavane', 'Ms. Tanvi S. Patil', 'Ms. Tanvi M. Patil', 'Ms. Sakshi Rokade', 'Mr. Amogh Keluskar', 'Ms. Arshiya Quereshi', 'Ms. Aditi Singh', 'Mr. Mohan Kumar', 'Ms. Swati Mishra', 'Mr. Dharmesh Kumar', 'Mr. Saviour Fargose', 'Mr. Sandeep Yadav', 'Ms. Ashwini Kardile', 'Ms. Aarti Shinde', 'Mr. Hemraj Swami', 'Ms. Mahalaxmi Palinje', 'Ms. Jemika Mali', 'Mr. Vaibhav Dhamnaskar', 'Ms. Aachal R. Dubey', 'Ms. Dr. Sangita Dubey', 'Mr. Mohd. Raqheeb Momin', 'Mr. Deepak Kadam', 'Mr. Ayush Mishra', 'Mr. Varun Gandhi', 'Mr. Saurish Chanda', 'Mr. Utkarsh Anand', 'Dr.Jitendra Saturwar', 'Dr. John Kenny', 'Dr. Bipin Sonavane', 'Ms. Damini Bhuva', 'Mr.Sandeep Dubey', 'Ms. Trecia Fernandes', 'Mr. Jashveer Singh', 'Ms.Palak Thakkar', 'Mr.Kiran Kale', 'Ms. Sonia Fernandes', 'Dr. Mubashir Khan', 'Mr. Samuel Jacobs', 'Mr. Abhishek Patra', 'Ms. Kinjal Borse', 'Dr. Aaradhana Khare', 'Mr. Prashant Manjarekar', 'Mr. Binod Singh', 'Ms.Pravin Jhulum', 'Mr. Narayan Labdhe', 'Mr. Gaurav Patil', 'Ms. Pooja Patil', 'Mr. Vilas Fargose', 'Ms. Bidya Das', 'Mr. Manish Pawade', 'Ms. Priyanka Shrivardhankar', 'Mr. Yash Pimple', 'Mr. Nikhil Sankhe', 'Mr. Yuvraj Todankar', 'Mr. Swapnil Karvir'
 ];
 
